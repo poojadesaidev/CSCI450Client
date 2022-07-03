@@ -13,7 +13,7 @@
 
 using namespace std;
 
-int main()
+int createStreamClientSocket()
 {
   // Create a socket
   int stream_client_socket; // socket id of client socket
@@ -37,41 +37,84 @@ int main()
   // Connect to server
   if (connect(stream_client_socket, (sockaddr *)&stream_server_hint, sizeof(stream_server_hint)) == -1)
   {
-    cerr << "Stream client socket could not be connect to stream serverM";
-    return -2;
+    cerr << "Stream client socket could not connect to stream serverM";
+    return -1;
   }
+  return stream_client_socket;
+}
 
+int sendRecieve(string message, int stream_client_socket)
+{
   // Send and Recieve
   char buf[4096];
-  string userInput;
-  do
+
+  // Send to the server
+  if (send(stream_client_socket, message.c_str(), message.size() + 1, 0) == -1)
   {
-    // Get user input
-    cout << "> ";
-    getline(cin, userInput);
+    cerr << "Stream client socket could not send to stream serverM. Please try again." << endl;
+    close(stream_client_socket);
+    return -1;
+  }
 
-    // Send to the server
-    if (send(stream_client_socket, userInput.c_str(), userInput.size() + 1, 0) == -1)
-    {
-      cerr << "Stream client socket could not send to stream serverM. Please try again." << endl;
-      continue;
-    }
+  // Wait for response and recieve it
+  memset(buf, 0, 4096);
+  int bytesRecieved = recv(stream_client_socket, buf, 4096, 0);
 
-    // Wait for response and recieve it
-    memset(buf, 0, 4096);
-    int bytesRecieved = recv(stream_client_socket, buf, 4096, 0);
+  if (bytesRecieved == -1)
+  {
+    cerr << "Stream client socket could not recieve stream from serverM. Please try again." << endl;
+    close(stream_client_socket);
+    return -1;
+  }
 
-    if (bytesRecieved == -1)
-    {
-      cerr << "Stream client socket could not recieve stream from serverM. Please try again." << endl;
-      continue;
-    }
-
-    // Display response
-    cout << "SERVER>" << string(buf, bytesRecieved) << endl;
-
-  } while (true);
-
+  // Display response
+  cout << string(buf, bytesRecieved) << endl;
   close(stream_client_socket);
   return 0;
+}
+
+int checkWallet(char *namecharArr)
+{
+  string name = namecharArr;
+  int stream_client_socket = createStreamClientSocket();
+  if (stream_client_socket == -1)
+  {
+    return stream_client_socket;
+  }
+  // Send request
+  return sendRecieve(name, stream_client_socket);
+}
+
+int transferCoinsWallet(char *senderNamecharArr, char *recNamecharArr, char *amount)
+{
+  string senderName = senderNamecharArr;
+  string recName = recNamecharArr;
+  string amt = amount;
+  int stream_client_socket = createStreamClientSocket();
+  if (stream_client_socket == -1)
+  {
+    return stream_client_socket;
+  }
+  // Construct request message
+  string message = senderName + " to transfer " + amt + " coins to " + recName;
+
+  // Send request
+  return sendRecieve(message, stream_client_socket);
+}
+
+int main(int argc, char *argv[])
+{
+  // Display Boot Message
+  cout << "The client is up and running." << endl;
+
+  switch (argc)
+  {
+  case 2:
+    return checkWallet(argv[1]);
+  case 4:
+    return transferCoinsWallet(argv[1], argv[2], argv[3]);
+  default:
+    cerr << "Stream client socket could not be created for client";
+    return -1;
+  }
 }
