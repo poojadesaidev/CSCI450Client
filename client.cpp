@@ -43,18 +43,20 @@ int createStreamClientSocket()
   return stream_client_socket;
 }
 
-int sendRecieve(string message, int stream_client_socket)
+int sendRecieve(string messageSend, string messageDisplay, int stream_client_socket)
 {
   // Send and Recieve
   char buf[4096];
 
   // Send to the server
-  if (send(stream_client_socket, message.c_str(), message.size() + 1, 0) == -1)
+  if (send(stream_client_socket, messageSend.c_str(), messageSend.size() + 1, 0) == -1)
   {
     cerr << "Stream client socket could not send to stream serverM. Please try again." << endl;
     close(stream_client_socket);
     return -1;
   }
+
+  cout << messageDisplay << endl;
 
   // Wait for response and recieve it
   memset(buf, 0, 4096);
@@ -68,6 +70,7 @@ int sendRecieve(string message, int stream_client_socket)
   }
 
   // Display response
+
   cout << string(buf, bytesRecieved) << endl;
   close(stream_client_socket);
   return 0;
@@ -81,8 +84,12 @@ int checkWallet(char *namecharArr)
   {
     return stream_client_socket;
   }
+
+  // Construct display message
+  string messageDisplay = "\"" + name + "\" sent a balance enquiry request to the main server.";
+
   // Send request
-  return sendRecieve(name, stream_client_socket);
+  return sendRecieve(name, messageDisplay, stream_client_socket);
 }
 
 int transferCoinsWallet(char *senderNamecharArr, char *recNamecharArr, char *amount)
@@ -96,10 +103,13 @@ int transferCoinsWallet(char *senderNamecharArr, char *recNamecharArr, char *amo
     return stream_client_socket;
   }
   // Construct request message
-  string message = senderName + " to transfer " + amt + " coins to " + recName;
+  string messageSend = senderName + " " + recName + " " + amt;
+
+  // Construct display message
+  string messageDisplay = "\"" + senderName + "\"" + " has requested to transfer " + amt + " txcoins to \"" + recName + "\".";
 
   // Send request
-  return sendRecieve(message, stream_client_socket);
+  return sendRecieve(messageSend, messageDisplay, stream_client_socket);
 }
 
 int main(int argc, char *argv[])
@@ -114,7 +124,7 @@ int main(int argc, char *argv[])
   case 4:
     return transferCoinsWallet(argv[1], argv[2], argv[3]);
   default:
-    cerr << "Stream client socket could not be created for client";
+    cerr << "Client can only accept one or three input parameters";
     return -1;
   }
 }
